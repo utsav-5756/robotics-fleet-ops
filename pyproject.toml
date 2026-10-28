@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robotics-fleet-ops"
+version = "0.1.0"
+description = "A safe, local fleet operations center for simulated warehouse robots."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+api = [
+    "fastapi==0.115.12",
+    "uvicorn[standard]==0.34.0",
+]
+dashboard = [
+    "streamlit==1.66.0",
+]
+test = [
+    "httpx==0.28.1",
+    "pytest==9.2.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra"
+pythonpath = ["src", "simulator/ros_ws/src/fleet_simulator"]
+testpaths = ["tests"]
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["fleet_ops*"]

@@ -1,0 +1,37 @@
+# Python bytecode and local environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# ROS 2 / colcon outputs
+install/
+log/
+colcon_build/
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+
+# Local databases and generated logs
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Editor and operating-system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,86 @@
+name: robotics-fleet-ops-simulator
+
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+    environment:
+      FLEET_DATABASE_PATH: /data/fleet.sqlite3
+      FLEET_AGENT_PROVIDER: ${FLEET_AGENT_PROVIDER:-deterministic}
+      FLEET_OLLAMA_MODEL: ${FLEET_OLLAMA_MODEL:-}
+      FLEET_OLLAMA_URL: ${FLEET_OLLAMA_URL:-http://host.docker.internal:11434/api/chat}
+      FLEET_SIMULATOR_ACTION_URL: http://simulator:8765/v1/actions/reconnect
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - fleet_data:/data
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  dashboard:
+    build:
+      context: ..
+      dockerfile: dashboard/Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      FLEET_API_URL: http://backend:8000
+    ports:
+      - "127.0.0.1:8501:8501"
+
+  simulator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      ROS_DOMAIN_ID: "42"
+      FLEET_SCENARIO: ${FLEET_SCENARIO:-normal}
+      FLEET_SEED: ${FLEET_SEED:-7}
+      FAULT_ROBOT_ID: ${FAULT_ROBOT_ID:-robot_02}
+      FLEET_RUN_ID: ${FLEET_RUN_ID:-}
+      FLEET_BACKEND_URL: http://backend:8000/api/v1/telemetry
+      FLEET_PUBLISH_RATE_HZ: ${FLEET_PUBLISH_RATE_HZ:-1.0}
+      FLEET_SIMULATOR_ACTION_PORT: "8765"
+    volumes:
+      - ./ros_ws/src:/workspace/ros_ws/src:ro
+      - simulator_build:/workspace/ros_ws/build
+      - simulator_install:/workspace/ros_ws/install
+      - simulator_log:/workspace/ros_ws/log
+    working_dir: /workspace/ros_ws
+    command:
+      - bash
+      - -lc
+      - >-
+        source /opt/ros/jazzy/setup.bash &&
+        colcon build --merge-install &&
+        source install/setup.bash &&
+        exec ros2 launch fleet_simulator headless.launch.py
+    stop_grace_period: 10s
+
+  tests:
+    profiles:
+      - test
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    command: ["python", "-m", "pytest", "-q"]
+
+volumes:
+  fleet_data:
+  simulator_build:
+  simulator_install:
+  simulator_log:
